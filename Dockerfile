@@ -35,6 +35,7 @@ RUN apk -U upgrade \
     protobuf-dev \
     python \
  && apk add \
+    libc6-compat \
     ca-certificates \
     ffmpeg \
     file \
