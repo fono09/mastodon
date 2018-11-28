@@ -37,7 +37,7 @@ services:
       - external_network
       - internal_network
     ports:
-      - "127.0.0.1:3000:3000"
+      - "3000:3000"
     depends_on:
       - db
       - redis
@@ -91,6 +91,15 @@ services:
 #    networks:
 #      - external_network
 #      - internal_network
+#
+  gmail_relay:
+      image: lylescott/postfix-gmail-relay
+      restart: always
+      env_file: .env.production
+      environment:
+      networks:
+          - external_network
+          - internal_network
 
 networks:
   external_network:
