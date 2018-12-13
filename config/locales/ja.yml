@@ -2,9 +2,9 @@
 ja:
   about:
     about_hashtag_html: ハッシュタグ <strong>#%{hashtag}</strong> の付いた公開トゥートです。どこでもいいので、連合に参加しているSNS上にアカウントを作れば会話に参加することができます。
-    about_mastodon_html: Mastodon は、オープンなウェブプロトコルを採用した、自由でオープンソースなソーシャルネットワークです。電子メールのような分散型の仕組みを採っています。
+    about_mastodon_html: Mastodon はなんか上手い具合に他のサーバーと繋がる、勝手気ままでオープンソースなSNSです。その証拠に、この説明文は管理人によって改変されています。どうやら、電子メールっぽい仕組みを採っています。
     about_this: 詳細情報
-    administered_by: '管理者:'
+    administered_by: '戦犯:'
     api: API
     apps: アプリ
     closed_registrations: 現在このインスタンスでの新規登録は受け付けていません。しかし、他のインスタンスにアカウントを作成しても全く同じネットワークに参加することができます。
@@ -13,18 +13,18 @@ ja:
     contact_unavailable: N/A
     documentation: ドキュメント
     extended_description_html: |
-      <h3>ルールを書くのに適した場所</h3>
-      <p>詳細説明が設定されていません。</p>
+      <h3>ルール</h3>
+      <p>公序良俗に反しない範囲で勝手にやって下さい。ふぉのの気分次第で止まる可能性があるので、エクスポートとバックアップを怠らないこと。</p>
     features:
-      humane_approach_body: 他の SNS の失敗から学び、Mastodon はソーシャルメディアが誤った使い方をされることの無いように倫理的な設計を目指しています。
-      humane_approach_title: より思いやりのある設計
-      not_a_product_body: Mastodon は営利的な SNS ではありません。広告や、データの収集・解析は無く、またユーザーの囲い込みもありません。ここには中央権力はありません。
+      humane_approach_body: Matodon は青い鳥みたいなやつらの失敗から学び、もっとマシな設計と運用を目指しているみたいです。
+      humane_approach_title: 心意気
+      not_a_product_body: この鯖は営利的なSNSではありません。広告や、データの収集・解析は無く、またユーザーの囲い込みもありません。Mastodon 全体には中央権力はありませんが、ふぉのがこの鯖の管理人です。
       not_a_product_title: あなたは人間であり、商品ではありません
-      real_conversation_body: 好きなように書ける500文字までの投稿や、文章やメディアの内容に警告をつけられる機能で、思い通りに自分自身を表現することができます。
+      real_conversation_body: 好きなように書ける500文字までの投稿や、文章やメディアの内容に警告をつけられる機能で、思い通りに自分自身を表現することができます。この機能を用いた投稿は全てゾーニングできたものとみなします。異論は認めません。
       real_conversation_title: 本当のコミュニケーションのために
-      within_reach_body: デベロッパーフレンドリーな API により実現された、iOS や Android、その他様々なプラットフォームのためのアプリでどこでも友人とやりとりできます。
-      within_reach_title: いつでも身近に
-    generic_description: "%{domain} は、Mastodon インスタンスの一つです"
+      within_reach_body: デベロッパーフレンドリーな API により実現された、iOS や Android、その他様々なプラットフォームのためのアプリでどこでも友人とやりとりできます。ただし可用性ははふぉのの気分次第です。
+      within_reach_title: いつでもどこでもだれにでも
+    generic_description: "%{domain} は、ふぉのが立てた Mastodon インスタンスです。"
     hosted_on: Mastodon hosted on %{domain}
     learn_more: もっと詳しく
     other_instances: 他のインスタンス
