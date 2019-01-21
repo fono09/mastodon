@@ -94,9 +94,6 @@ gem 'json-ld-preloaded', '~> 3.0'
 gem 'rdf-normalize', '~> 0.3'
 
 group :development, :test do
-gem 'rdf-normalize', '~> 0.3'
-
-group :development, :test do
   gem 'fabrication', '~> 2.20'
   gem 'fuubar', '~> 2.3'
   gem 'i18n-tasks', '~> 0.9', require: false
