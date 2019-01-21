@@ -32,8 +32,9 @@ class Formatter
 
     html = raw_content
     html = "RT @#{prepend_reblog} #{html}" if prepend_reblog
-    html = encode_and_link_urls(html, linkable_accounts)
+    html = encode_and_link_without_urls(html, linkable_accounts)
     html = encode_custom_emojis(html, status.emojis, options[:autoplay]) if options[:custom_emojify]
+    html = encode_markdown(html)
     html = simple_format(html, {}, sanitize: false)
     html = html.delete("\n")
 
@@ -96,6 +97,30 @@ class Formatter
 
   def encode(html)
     html_entities.encode(html)
+  end
+
+  def encode_markdown(html)
+    link_attributes = { target: '_blank', rel: 'nofollow noopener' }
+    renderer = Redcarpet::Render::HTML.new(no_styles: true, link_attributes: link_attributes)
+    markdown = Redcarpet::Markdown.new(renderer, no_intra_enphasis: true, tables: true, autolink: true, strikethrough: true, space_after_headers: true, underline: true, highlight: true, footnotes: true)
+    markdown.render(html)
+  end
+
+  def encode_and_link_without_urls(html, accounts = nil, options = {})
+    entities = Extractor.extract_entities_with_indices(html, extract_url_without_protocol: false)
+
+    if accounts.is_a?(Hash)
+      options  = accounts
+      accounts = nil
+    end
+
+    rewrite(html.dup, entities) do |entity|
+      if entity[:hashtag]
+        link_to_hashtag(entity)
+      elsif entity[:screen_name]
+        link_to_mention(entity, accounts)
+      end
+    end
   end
 
   def encode_and_link_urls(html, accounts = nil, options = {})
