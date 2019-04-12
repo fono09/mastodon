@@ -1,82 +1,75 @@
-FROM node:8.15-alpine as node
-FROM ruby:2.6-alpine3.8
+FROM ubuntu:18.04 as build-dep
 
-LABEL maintainer="https://github.com/tootsuite/mastodon" \
-      description="Your self-hosted, globally interconnected microblogging community"
+# Use bash for the shell
+SHELL ["bash", "-c"]
 
-ARG UID=991
-ARG GID=991
+# Install Node
+ENV NODE_VER="8.15.0"
+RUN	echo "Etc/UTC" > /etc/localtime && \
+	apt update && \
+	apt -y dist-upgrade && \
+	apt -y install wget make gcc g++ python && \
+	cd ~ && \
+	wget https://nodejs.org/download/release/v$NODE_VER/node-v$NODE_VER.tar.gz && \
+	tar xf node-v$NODE_VER.tar.gz && \
+	cd node-v$NODE_VER && \
+	./configure --prefix=/opt/node && \
+	make -j$(nproc) > /dev/null && \
+	make install
 
-ENV PATH=/mastodon/bin:$PATH \
-    RAILS_SERVE_STATIC_FILES=true \
-    RAILS_ENV=production \
-    NODE_ENV=production
+# Install jemalloc
+ENV JE_VER="5.1.0"
+RUN apt update && \
+	apt -y install autoconf && \
+	cd ~ && \
+	wget https://github.com/jemalloc/jemalloc/archive/$JE_VER.tar.gz && \
+	tar xf $JE_VER.tar.gz && \
+	cd jemalloc-$JE_VER && \
+	./autogen.sh && \
+	./configure --prefix=/opt/jemalloc && \
+	make -j$(nproc) > /dev/null && \
+	make install_bin install_include install_lib
 
-ARG LIBICONV_VERSION=1.15
-ARG LIBICONV_DOWNLOAD_SHA256=ccf536620a45458d26ba83887a983b96827001e92a13847b45e4925cc8913178
+# Install ruby
+ENV RUBY_VER="2.6.1"
+ENV CPPFLAGS="-I/opt/jemalloc/include"
+ENV LDFLAGS="-L/opt/jemalloc/lib/"
+RUN apt update && \
+	apt -y install build-essential \
+		bison libyaml-dev libgdbm-dev libreadline-dev \
+		libncurses5-dev libffi-dev zlib1g-dev libssl-dev && \
+	cd ~ && \
+	wget https://cache.ruby-lang.org/pub/ruby/${RUBY_VER%.*}/ruby-$RUBY_VER.tar.gz && \
+	tar xf ruby-$RUBY_VER.tar.gz && \
+	cd ruby-$RUBY_VER && \
+	./configure --prefix=/opt/ruby \
+	  --with-jemalloc \
+	  --with-shared \
+	  --disable-install-doc && \
+	ln -s /opt/jemalloc/lib/* /usr/lib/ && \
+	make -j$(nproc) > /dev/null && \
+	make install
 
-EXPOSE 3000 4000
+ENV PATH="${PATH}:/opt/ruby/bin:/opt/node/bin"
 
-WORKDIR /mastodon
+RUN npm install -g yarn && \
+	gem install bundler && \
+	apt update && \
+	apt -y install git libicu-dev libidn11-dev \
+	libpq-dev libprotobuf-dev protobuf-compiler
 
-COPY --from=node /usr/local/bin/node /usr/local/bin/node
-COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules
-COPY --from=node /usr/local/bin/npm /usr/local/bin/npm
-COPY --from=node /opt/yarn-* /opt/yarn
+COPY Gemfile* package.json yarn.lock /opt/mastodon/
 
-RUN apk -U upgrade \
- && apk add -t build-dependencies \
-    build-base \
-    icu-dev \
-    libidn-dev \
-    libressl \
-    libtool \
-    libxml2-dev \
-    libxslt-dev \
-    postgresql-dev \
-    protobuf-dev \
-    python \
- && apk add \
-    libc6-compat \
-    ca-certificates \
-    ffmpeg \
-    file \
-    git \
-    icu-libs \
-    imagemagick \
-    libidn \
-    libpq \
-    libxml2 \
-    libxslt \
-    protobuf \
-    tini \
-    tzdata \
- && update-ca-certificates \
- && ln -s /opt/yarn/bin/yarn /usr/local/bin/yarn \
- && ln -s /opt/yarn/bin/yarnpkg /usr/local/bin/yarnpkg \
- && mkdir -p /tmp/src /opt \
- && wget -O libiconv.tar.gz "https://ftp.gnu.org/pub/gnu/libiconv/libiconv-$LIBICONV_VERSION.tar.gz" \
- && echo "$LIBICONV_DOWNLOAD_SHA256 *libiconv.tar.gz" | sha256sum -c - \
- && tar -xzf libiconv.tar.gz -C /tmp/src \
- && rm libiconv.tar.gz \
- && cd /tmp/src/libiconv-$LIBICONV_VERSION \
- && ./configure --prefix=/usr/local \
- && make -j$(getconf _NPROCESSORS_ONLN)\
- && make install \
- && libtool --finish /usr/local/lib \
- && cd /mastodon \
- && rm -rf /tmp/* /var/cache/apk/*
+RUN cd /opt/mastodon && \
+	bundle install -j$(nproc) --deployment --without development test && \
+	yarn install --pure-lockfile
 
-COPY Gemfile Gemfile.lock package.json yarn.lock .yarnclean /mastodon/
+FROM ubuntu:18.04
 
-RUN bundle config build.nokogiri --use-system-libraries --with-iconv-lib=/usr/local/lib --with-iconv-include=/usr/local/include \
- && bundle install -j$(getconf _NPROCESSORS_ONLN) --deployment --without test development \
- && yarn install --pure-lockfile --ignore-engines \
- && yarn cache clean
-
-RUN addgroup -g ${GID} mastodon && adduser -h /mastodon -s /bin/sh -D -G mastodon -u ${UID} mastodon \
- && mkdir -p /mastodon/public/system /mastodon/public/assets /mastodon/public/packs \
- && chown -R mastodon:mastodon /mastodon/public
+# Copy over all the langs needed for runtime
+COPY --from=build-dep /opt/node /opt/node
+COPY --from=build-dep /opt/ruby /opt/ruby
+COPY --from=build-dep /opt/jemalloc /opt/jemalloc
 
 COPY . /mastodon
 
@@ -84,8 +77,13 @@ RUN chown -R mastodon:mastodon /mastodon
 
 VOLUME /mastodon/public/system
 
+# Set the run user
 USER mastodon
 
-RUN OTP_SECRET=precompile_placeholder SECRET_KEY_BASE=precompile_placeholder bundle exec rails assets:precompile
+# Precompile assets
+RUN cd ~ && \
+	OTP_SECRET=precompile_placeholder SECRET_KEY_BASE=precompile_placeholder rails assets:precompile && \
+	yarn cache clean
 
-ENTRYPOINT ["/sbin/tini", "--"]
+# Set the work dir and the container entry point
+WORKDIR /opt/mastodon
