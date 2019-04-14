@@ -71,11 +71,49 @@ COPY --from=build-dep /opt/node /opt/node
 COPY --from=build-dep /opt/ruby /opt/ruby
 COPY --from=build-dep /opt/jemalloc /opt/jemalloc
 
-COPY . /mastodon
+# Add more PATHs to the PATH
+ENV PATH="${PATH}:/opt/ruby/bin:/opt/node/bin:/opt/mastodon/bin"
 
-RUN chown -R mastodon:mastodon /mastodon
+# Create the mastodon user
+ARG UID=991
+ARG GID=991
+RUN apt update && \
+	echo "Etc/UTC" > /etc/localtime && \
+	ln -s /opt/jemalloc/lib/* /usr/lib/ && \
+	apt -y dist-upgrade && \
+	apt install -y whois wget && \
+	addgroup --gid $GID mastodon && \
+	useradd -m -u $UID -g $GID -d /opt/mastodon mastodon && \
+	echo "mastodon:`head /dev/urandom | tr -dc A-Za-z0-9 | head -c 24 | mkpasswd -s -m sha-256`" | chpasswd
 
-VOLUME /mastodon/public/system
+# Install masto runtime deps
+RUN apt -y --no-install-recommends install \
+	  libssl1.1 libpq5 imagemagick ffmpeg \
+	  libicu60 libprotobuf10 libidn11 libyaml-0-2 \
+	  file ca-certificates tzdata libreadline7 && \
+	apt -y install gcc && \
+	ln -s /opt/mastodon /mastodon && \
+	gem install bundler && \
+	rm -rf /var/cache && \
+	rm -rf /var/lib/apt
+
+# Add tini
+ENV TINI_VERSION="0.18.0"
+ENV TINI_SUM="12d20136605531b09a2c2dac02ccee85e1b874eb322ef6baf7561cd93f93c855"
+ADD https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini /tini
+RUN echo "$TINI_SUM tini" | sha256sum -c -
+RUN chmod +x /tini
+
+# Copy over masto source, and dependencies from building, and set permissions
+COPY --chown=mastodon:mastodon . /opt/mastodon
+COPY --from=build-dep --chown=mastodon:mastodon /opt/mastodon /opt/mastodon
+
+# Run masto services in prod mode
+ENV RAILS_ENV="production"
+ENV NODE_ENV="production"
+
+# Tell rails to serve static files
+ENV RAILS_SERVE_STATIC_FILES="true"
 
 # Set the run user
 USER mastodon
@@ -87,3 +125,4 @@ RUN cd ~ && \
 
 # Set the work dir and the container entry point
 WORKDIR /opt/mastodon
+ENTRYPOINT ["/tini", "--"]
