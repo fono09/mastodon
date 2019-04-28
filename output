@@ -1,0 +1,444 @@
+gmail_relay uses an image, skipping
+redis uses an image, skipping
+db uses an image, skipping
+Building web
+Step 1/37 : FROM ubuntu:18.04 as build-dep
+ ---> 94e814e2efa8
+Step 2/37 : SHELL ["bash", "-c"]
+ ---> Using cache
+ ---> f7e3d08ee0dd
+Step 3/37 : ENV NODE_VER="8.15.0"
+ ---> Using cache
+ ---> c266b76cc8c4
+Step 4/37 : RUN	echo "Etc/UTC" > /etc/localtime && 	apt update && 	apt -y dist-upgrade && 	apt -y install wget make gcc g++ python && 	cd ~ && 	wget https://nodejs.org/download/release/v$NODE_VER/node-v$NODE_VER.tar.gz && 	tar xf node-v$NODE_VER.tar.gz && 	cd node-v$NODE_VER && 	./configure --prefix=/opt/node && 	make -j$(nproc) > /dev/null && 	make install
+ ---> Using cache
+ ---> 83761c79d0d6
+Step 5/37 : ENV JE_VER="5.1.0"
+ ---> Using cache
+ ---> a35999a569ed
+Step 6/37 : RUN apt update && 	apt -y install autoconf && 	cd ~ && 	wget https://github.com/jemalloc/jemalloc/archive/$JE_VER.tar.gz && 	tar xf $JE_VER.tar.gz && 	cd jemalloc-$JE_VER && 	./autogen.sh && 	./configure --prefix=/opt/jemalloc && 	make -j$(nproc) > /dev/null && 	make install_bin install_include install_lib
+ ---> Using cache
+ ---> 04602dec98ea
+Step 7/37 : ENV RUBY_VER="2.6.1"
+ ---> Using cache
+ ---> 91800eaf6d92
+Step 8/37 : ENV CPPFLAGS="-I/opt/jemalloc/include"
+ ---> Using cache
+ ---> 7215e0ee8b33
+Step 9/37 : ENV LDFLAGS="-L/opt/jemalloc/lib/"
+ ---> Using cache
+ ---> fdcc3e39db2c
+Step 10/37 : RUN apt update && 	apt -y install build-essential 		bison libyaml-dev libgdbm-dev libreadline-dev 		libncurses5-dev libffi-dev zlib1g-dev libssl-dev && 	cd ~ && 	wget https://cache.ruby-lang.org/pub/ruby/${RUBY_VER%.*}/ruby-$RUBY_VER.tar.gz && 	tar xf ruby-$RUBY_VER.tar.gz && 	cd ruby-$RUBY_VER && 	./configure --prefix=/opt/ruby 	  --with-jemalloc 	  --with-shared 	  --disable-install-doc && 	ln -s /opt/jemalloc/lib/* /usr/lib/ && 	make -j$(nproc) > /dev/null && 	make install
+ ---> Using cache
+ ---> 7d92c8d142c0
+Step 11/37 : ENV PATH="${PATH}:/opt/ruby/bin:/opt/node/bin"
+ ---> Using cache
+ ---> 35477a4d6391
+Step 12/37 : RUN npm install -g yarn && 	gem install bundler && 	apt update && 	apt -y install git libicu-dev libidn11-dev 	libpq-dev libprotobuf-dev protobuf-compiler
+ ---> Using cache
+ ---> bdf6c1667fe8
+Step 13/37 : COPY Gemfile* package.json yarn.lock /opt/mastodon/
+ ---> Using cache
+ ---> e2a90b4ce748
+Step 14/37 : RUN cd /opt/mastodon && 	bundle install -j$(nproc) --deployment --without development test && 	yarn install --pure-lockfile
+ ---> Using cache
+ ---> f4d17ff79d48
+Step 15/37 : FROM ubuntu:18.04
+ ---> 94e814e2efa8
+Step 16/37 : COPY --from=build-dep /opt/node /opt/node
+ ---> Using cache
+ ---> 949276c5ade6
+Step 17/37 : COPY --from=build-dep /opt/ruby /opt/ruby
+ ---> Using cache
+ ---> 285f5052882c
+Step 18/37 : COPY --from=build-dep /opt/jemalloc /opt/jemalloc
+ ---> Using cache
+ ---> 427f3a7d08a4
+Step 19/37 : ENV PATH="${PATH}:/opt/ruby/bin:/opt/node/bin:/opt/mastodon/bin"
+ ---> Using cache
+ ---> 0862957e7187
+Step 20/37 : ARG UID=991
+ ---> Using cache
+ ---> 69b1e1d2833b
+Step 21/37 : ARG GID=991
+ ---> Using cache
+ ---> 0af63428ff69
+Step 22/37 : RUN apt update && 	echo "Etc/UTC" > /etc/localtime && 	ln -s /opt/jemalloc/lib/* /usr/lib/ && 	apt -y dist-upgrade && 	apt install -y whois wget && 	addgroup --gid $GID mastodon && 	useradd -m -u $UID -g $GID -d /opt/mastodon mastodon && 	echo "mastodon:`head /dev/urandom | tr -dc A-Za-z0-9 | head -c 24 | mkpasswd -s -m sha-256`" | chpasswd
+ ---> Using cache
+ ---> 949ee0df0042
+Step 23/37 : RUN apt -y --no-install-recommends install 	  libssl1.1 libpq5 imagemagick ffmpeg 	  libicu60 libprotobuf10 libidn11 libyaml-0-2 	  file ca-certificates tzdata libreadline7 && 	apt -y install gcc && 	ln -s /opt/mastodon /mastodon && 	gem install bundler && 	rm -rf /var/cache && 	rm -rf /var/lib/apt
+ ---> Using cache
+ ---> 211f2fe3f86f
+Step 24/37 : ENV TINI_VERSION="0.18.0"
+ ---> Using cache
+ ---> afaf093967ac
+Step 25/37 : ENV TINI_SUM="12d20136605531b09a2c2dac02ccee85e1b874eb322ef6baf7561cd93f93c855"
+ ---> Using cache
+ ---> d48cb3bef04c
+Step 26/37 : ADD https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini /tini
+
+ ---> Using cache
+ ---> fd384ca9ca62
+Step 27/37 : RUN echo "$TINI_SUM tini" | sha256sum -c -
+ ---> Using cache
+ ---> 8232ebb087f3
+Step 28/37 : RUN chmod +x /tini
+ ---> Using cache
+ ---> e098065c1979
+Step 29/37 : COPY --chown=mastodon:mastodon . /opt/mastodon
+ ---> d3496dd74879
+Step 30/37 : COPY --from=build-dep --chown=mastodon:mastodon /opt/mastodon /opt/mastodon
+ ---> 327296052ec3
+Step 31/37 : ENV RAILS_ENV="production"
+ ---> Running in f706180ced88
+Removing intermediate container f706180ced88
+ ---> 0c84271b9623
+Step 32/37 : ENV NODE_ENV="production"
+ ---> Running in 95f526ec3f49
+Removing intermediate container 95f526ec3f49
+ ---> 3407eddd898e
+Step 33/37 : ENV RAILS_SERVE_STATIC_FILES="true"
+ ---> Running in 8052126a7602
+Removing intermediate container 8052126a7602
+ ---> c1d9539d5060
+Step 34/37 : USER mastodon
+ ---> Running in 7283adac7c03
+Removing intermediate container 7283adac7c03
+ ---> 5bbfbd29444a
+Step 35/37 : RUN cd ~ && 	OTP_SECRET=precompile_placeholder SECRET_KEY_BASE=precompile_placeholder rails assets:precompile && 	yarn cache clean
+ ---> Running in dab61160059b
+yarn install v1.15.2
+info Merge conflict detected in yarn.lock and successfully merged.
+[1/6] Validating package.json...
+[2/6] Resolving packages...
+[3/6] Fetching packages...
+info fsevents@1.2.4: The platform "linux" is incompatible with this module.
+info "fsevents@1.2.4" is an optional dependency and failed compatibility check. Excluding it from installation.
+[4/6] Linking dependencies...
+[91mwarning " > react-redux-loading-bar@4.0.8" has incorrect peer dependency "react-redux@^3.0.0 || ^4.0.0 || ^5.0.0".
+[0m[91mwarning "jest > jest-cli > @jest/core > jest-resolve-dependencies@24.5.0" has unmet peer dependency "jest-resolve@^24.1.0".
+[0m[91mwarning "jest > jest-cli > jest-config > jest-resolve@24.5.0" has unmet peer dependency "jest-haste-map@^24.0.0".
+[0m[5/6] Building fresh packages...
+[6/6] Cleaning modules...
+success Saved lockfile.
+Done in 36.55s.
+[91mI, [2019-04-13T01:11:43.688922 #8]  INFO -- : Writing /opt/mastodon/public/assets/doorkeeper/admin/application-a644908e7bab54fb749be0f59fb64a7480bbf9c4c2b79d4a65791cb7ab4d8730.css
+[0m[91mI, [2019-04-13T01:11:43.689254 #8]  INFO -- : Writing /opt/mastodon/public/assets/doorkeeper/admin/application-a644908e7bab54fb749be0f59fb64a7480bbf9c4c2b79d4a65791cb7ab4d8730.css.gz
+[0m[91mI, [2019-04-13T01:11:43.700869 #8]  INFO -- : Writing /opt/mastodon/public/assets/doorkeeper/application-c93dac2ad9d65e3393e0e2c958481e86ef7a5e5b0f6ce406842a7b99b25a4850.css
+[0m[91mI, [2019-04-13T01:11:43.701010 #8]  INFO -- : Writing /opt/mastodon/public/assets/doorkeeper/application-c93dac2ad9d65e3393e0e2c958481e86ef7a5e5b0f6ce406842a7b99b25a4850.css.gz
+[0m[91mI, [2019-04-13T01:11:43.703318 #8]  INFO -- : Writing /opt/mastodon/public/assets/pghero/favicon-db10337a56c45eb43c22ff5019546b520fa22c7281d4d385f235cbca67ed26bb.png
+[0m[91mI, [2019-04-13T01:11:43.919830 #8]  INFO -- : Writing /opt/mastodon/public/assets/pghero/application-b6568ba483c03c4fdcd8edd641f3b341ac0314ba01ab186645b8fc231cdff02e.js
+[0m[91mI, [2019-04-13T01:11:43.919998 #8]  INFO -- : Writing /opt/mastodon/public/assets/pghero/application-b6568ba483c03c4fdcd8edd641f3b341ac0314ba01ab186645b8fc231cdff02e.js.gz
+[0m[91mI, [2019-04-13T01:11:43.950030 #8]  INFO -- : Writing /opt/mastodon/public/assets/pghero/application-d7ee8e7dc0785de97337625e0f1030e1a892327ef4e72a48043ce09fd964874d.css
+[0m[91mI, [2019-04-13T01:11:43.950168 #8]  INFO -- : Writing /opt/mastodon/public/assets/pghero/application-d7ee8e7dc0785de97337625e0f1030e1a892327ef4e72a48043ce09fd964874d.css.gz
+[0mCompiling…
+Compiled all packs in /opt/mastodon/public/packs
+yarn cache v1.15.2
+success Cleared cache.
+Done in 3.69s.
+Removing intermediate container dab61160059b
+ ---> f2dfc419d278
+Step 36/37 : WORKDIR /opt/mastodon
+ ---> Running in 2275545e9eca
+Removing intermediate container 2275545e9eca
+ ---> 0a42ab1c4d1c
+Step 37/37 : ENTRYPOINT ["/tini", "--"]
+ ---> Running in 4d7d9fdba998
+Removing intermediate container 4d7d9fdba998
+ ---> e4b0f6e4dcc7
+Successfully built e4b0f6e4dcc7
+Successfully tagged tootsuite/mastodon:latest
+Building sidekiq
+Step 1/37 : FROM ubuntu:18.04 as build-dep
+ ---> 94e814e2efa8
+Step 2/37 : SHELL ["bash", "-c"]
+ ---> Using cache
+ ---> f7e3d08ee0dd
+Step 3/37 : ENV NODE_VER="8.15.0"
+ ---> Using cache
+ ---> c266b76cc8c4
+Step 4/37 : RUN	echo "Etc/UTC" > /etc/localtime && 	apt update && 	apt -y dist-upgrade && 	apt -y install wget make gcc g++ python && 	cd ~ && 	wget https://nodejs.org/download/release/v$NODE_VER/node-v$NODE_VER.tar.gz && 	tar xf node-v$NODE_VER.tar.gz && 	cd node-v$NODE_VER && 	./configure --prefix=/opt/node && 	make -j$(nproc) > /dev/null && 	make install
+ ---> Using cache
+ ---> 83761c79d0d6
+Step 5/37 : ENV JE_VER="5.1.0"
+ ---> Using cache
+ ---> a35999a569ed
+Step 6/37 : RUN apt update && 	apt -y install autoconf && 	cd ~ && 	wget https://github.com/jemalloc/jemalloc/archive/$JE_VER.tar.gz && 	tar xf $JE_VER.tar.gz && 	cd jemalloc-$JE_VER && 	./autogen.sh && 	./configure --prefix=/opt/jemalloc && 	make -j$(nproc) > /dev/null && 	make install_bin install_include install_lib
+ ---> Using cache
+ ---> 04602dec98ea
+Step 7/37 : ENV RUBY_VER="2.6.1"
+ ---> Using cache
+ ---> 91800eaf6d92
+Step 8/37 : ENV CPPFLAGS="-I/opt/jemalloc/include"
+ ---> Using cache
+ ---> 7215e0ee8b33
+Step 9/37 : ENV LDFLAGS="-L/opt/jemalloc/lib/"
+ ---> Using cache
+ ---> fdcc3e39db2c
+Step 10/37 : RUN apt update && 	apt -y install build-essential 		bison libyaml-dev libgdbm-dev libreadline-dev 		libncurses5-dev libffi-dev zlib1g-dev libssl-dev && 	cd ~ && 	wget https://cache.ruby-lang.org/pub/ruby/${RUBY_VER%.*}/ruby-$RUBY_VER.tar.gz && 	tar xf ruby-$RUBY_VER.tar.gz && 	cd ruby-$RUBY_VER && 	./configure --prefix=/opt/ruby 	  --with-jemalloc 	  --with-shared 	  --disable-install-doc && 	ln -s /opt/jemalloc/lib/* /usr/lib/ && 	make -j$(nproc) > /dev/null && 	make install
+ ---> Using cache
+ ---> 7d92c8d142c0
+Step 11/37 : ENV PATH="${PATH}:/opt/ruby/bin:/opt/node/bin"
+ ---> Using cache
+ ---> 35477a4d6391
+Step 12/37 : RUN npm install -g yarn && 	gem install bundler && 	apt update && 	apt -y install git libicu-dev libidn11-dev 	libpq-dev libprotobuf-dev protobuf-compiler
+ ---> Using cache
+ ---> bdf6c1667fe8
+Step 13/37 : COPY Gemfile* package.json yarn.lock /opt/mastodon/
+ ---> Using cache
+ ---> e2a90b4ce748
+Step 14/37 : RUN cd /opt/mastodon && 	bundle install -j$(nproc) --deployment --without development test && 	yarn install --pure-lockfile
+ ---> Using cache
+ ---> f4d17ff79d48
+Step 15/37 : FROM ubuntu:18.04
+ ---> 94e814e2efa8
+Step 16/37 : COPY --from=build-dep /opt/node /opt/node
+ ---> Using cache
+ ---> 949276c5ade6
+Step 17/37 : COPY --from=build-dep /opt/ruby /opt/ruby
+ ---> Using cache
+ ---> 285f5052882c
+Step 18/37 : COPY --from=build-dep /opt/jemalloc /opt/jemalloc
+ ---> Using cache
+ ---> 427f3a7d08a4
+Step 19/37 : ENV PATH="${PATH}:/opt/ruby/bin:/opt/node/bin:/opt/mastodon/bin"
+ ---> Using cache
+ ---> 0862957e7187
+Step 20/37 : ARG UID=991
+ ---> Using cache
+ ---> 69b1e1d2833b
+Step 21/37 : ARG GID=991
+ ---> Using cache
+ ---> 0af63428ff69
+Step 22/37 : RUN apt update && 	echo "Etc/UTC" > /etc/localtime && 	ln -s /opt/jemalloc/lib/* /usr/lib/ && 	apt -y dist-upgrade && 	apt install -y whois wget && 	addgroup --gid $GID mastodon && 	useradd -m -u $UID -g $GID -d /opt/mastodon mastodon && 	echo "mastodon:`head /dev/urandom | tr -dc A-Za-z0-9 | head -c 24 | mkpasswd -s -m sha-256`" | chpasswd
+ ---> Using cache
+ ---> 949ee0df0042
+Step 23/37 : RUN apt -y --no-install-recommends install 	  libssl1.1 libpq5 imagemagick ffmpeg 	  libicu60 libprotobuf10 libidn11 libyaml-0-2 	  file ca-certificates tzdata libreadline7 && 	apt -y install gcc && 	ln -s /opt/mastodon /mastodon && 	gem install bundler && 	rm -rf /var/cache && 	rm -rf /var/lib/apt
+ ---> Using cache
+ ---> 211f2fe3f86f
+Step 24/37 : ENV TINI_VERSION="0.18.0"
+ ---> Using cache
+ ---> afaf093967ac
+Step 25/37 : ENV TINI_SUM="12d20136605531b09a2c2dac02ccee85e1b874eb322ef6baf7561cd93f93c855"
+ ---> Using cache
+ ---> d48cb3bef04c
+Step 26/37 : ADD https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini /tini
+
+ ---> Using cache
+ ---> fd384ca9ca62
+Step 27/37 : RUN echo "$TINI_SUM tini" | sha256sum -c -
+ ---> Using cache
+ ---> 8232ebb087f3
+Step 28/37 : RUN chmod +x /tini
+ ---> Using cache
+ ---> e098065c1979
+Step 29/37 : COPY --chown=mastodon:mastodon . /opt/mastodon
+ ---> bcd7017df6b0
+Step 30/37 : COPY --from=build-dep --chown=mastodon:mastodon /opt/mastodon /opt/mastodon
+ ---> 45bb1e66810b
+Step 31/37 : ENV RAILS_ENV="production"
+ ---> Running in c1894d13c04e
+Removing intermediate container c1894d13c04e
+ ---> ae521bb32ced
+Step 32/37 : ENV NODE_ENV="production"
+ ---> Running in d4a1ebde70c5
+Removing intermediate container d4a1ebde70c5
+ ---> 9a77d990b6e9
+Step 33/37 : ENV RAILS_SERVE_STATIC_FILES="true"
+ ---> Running in 58c3946f12f6
+Removing intermediate container 58c3946f12f6
+ ---> 44dc24324d4a
+Step 34/37 : USER mastodon
+ ---> Running in 08cf870f9c87
+Removing intermediate container 08cf870f9c87
+ ---> 934ed244bafb
+Step 35/37 : RUN cd ~ && 	OTP_SECRET=precompile_placeholder SECRET_KEY_BASE=precompile_placeholder rails assets:precompile && 	yarn cache clean
+ ---> Running in c4c395993b6d
+yarn install v1.15.2
+info Merge conflict detected in yarn.lock and successfully merged.
+[1/6] Validating package.json...
+[2/6] Resolving packages...
+[3/6] Fetching packages...
+info fsevents@1.2.4: The platform "linux" is incompatible with this module.
+info "fsevents@1.2.4" is an optional dependency and failed compatibility check. Excluding it from installation.
+[4/6] Linking dependencies...
+[91mwarning " > react-redux-loading-bar@4.0.8" has incorrect peer dependency "react-redux@^3.0.0 || ^4.0.0 || ^5.0.0".
+[0m[91mwarning "jest > jest-cli > @jest/core > jest-resolve-dependencies@24.5.0" has unmet peer dependency "jest-resolve@^24.1.0".
+[0m[91mwarning "jest > jest-cli > jest-config > jest-resolve@24.5.0" has unmet peer dependency "jest-haste-map@^24.0.0".
+[0m[5/6] Building fresh packages...
+[6/6] Cleaning modules...
+success Saved lockfile.
+Done in 34.77s.
+[91mI, [2019-04-13T01:15:45.777075 #8]  INFO -- : Writing /opt/mastodon/public/assets/doorkeeper/admin/application-a644908e7bab54fb749be0f59fb64a7480bbf9c4c2b79d4a65791cb7ab4d8730.css
+[0m[91mI, [2019-04-13T01:15:45.777485 #8]  INFO -- : Writing /opt/mastodon/public/assets/doorkeeper/admin/application-a644908e7bab54fb749be0f59fb64a7480bbf9c4c2b79d4a65791cb7ab4d8730.css.gz
+[0m[91mI, [2019-04-13T01:15:45.794962 #8]  INFO -- : Writing /opt/mastodon/public/assets/doorkeeper/application-c93dac2ad9d65e3393e0e2c958481e86ef7a5e5b0f6ce406842a7b99b25a4850.css
+[0m[91mI, [2019-04-13T01:15:45.795170 #8]  INFO -- : Writing /opt/mastodon/public/assets/doorkeeper/application-c93dac2ad9d65e3393e0e2c958481e86ef7a5e5b0f6ce406842a7b99b25a4850.css.gz
+[0m[91mI, [2019-04-13T01:15:45.799142 #8]  INFO -- : Writing /opt/mastodon/public/assets/pghero/favicon-db10337a56c45eb43c22ff5019546b520fa22c7281d4d385f235cbca67ed26bb.png
+[0m[91mI, [2019-04-13T01:15:46.161988 #8]  INFO -- : Writing /opt/mastodon/public/assets/pghero/application-b6568ba483c03c4fdcd8edd641f3b341ac0314ba01ab186645b8fc231cdff02e.js
+[0m[91mI, [2019-04-13T01:15:46.162239 #8]  INFO -- : Writing /opt/mastodon/public/assets/pghero/application-b6568ba483c03c4fdcd8edd641f3b341ac0314ba01ab186645b8fc231cdff02e.js.gz
+[0m[91mI, [2019-04-13T01:15:46.198653 #8]  INFO -- : Writing /opt/mastodon/public/assets/pghero/application-d7ee8e7dc0785de97337625e0f1030e1a892327ef4e72a48043ce09fd964874d.css
+[0m[91mI, [2019-04-13T01:15:46.201599 #8]  INFO -- : Writing /opt/mastodon/public/assets/pghero/application-d7ee8e7dc0785de97337625e0f1030e1a892327ef4e72a48043ce09fd964874d.css.gz
+[0mCompiling…
+Compiled all packs in /opt/mastodon/public/packs
+yarn cache v1.15.2
+success Cleared cache.
+Done in 3.96s.
+Removing intermediate container c4c395993b6d
+ ---> fb7a35f3aad7
+Step 36/37 : WORKDIR /opt/mastodon
+ ---> Running in a23cd20940d2
+Removing intermediate container a23cd20940d2
+ ---> db3a5e2793a7
+Step 37/37 : ENTRYPOINT ["/tini", "--"]
+ ---> Running in dd1b56fef2f8
+Removing intermediate container dd1b56fef2f8
+ ---> 16742ec14de0
+Successfully built 16742ec14de0
+Successfully tagged tootsuite/mastodon:latest
+Building streaming
+Step 1/37 : FROM ubuntu:18.04 as build-dep
+ ---> 94e814e2efa8
+Step 2/37 : SHELL ["bash", "-c"]
+ ---> Using cache
+ ---> f7e3d08ee0dd
+Step 3/37 : ENV NODE_VER="8.15.0"
+ ---> Using cache
+ ---> c266b76cc8c4
+Step 4/37 : RUN	echo "Etc/UTC" > /etc/localtime && 	apt update && 	apt -y dist-upgrade && 	apt -y install wget make gcc g++ python && 	cd ~ && 	wget https://nodejs.org/download/release/v$NODE_VER/node-v$NODE_VER.tar.gz && 	tar xf node-v$NODE_VER.tar.gz && 	cd node-v$NODE_VER && 	./configure --prefix=/opt/node && 	make -j$(nproc) > /dev/null && 	make install
+ ---> Using cache
+ ---> 83761c79d0d6
+Step 5/37 : ENV JE_VER="5.1.0"
+ ---> Using cache
+ ---> a35999a569ed
+Step 6/37 : RUN apt update && 	apt -y install autoconf && 	cd ~ && 	wget https://github.com/jemalloc/jemalloc/archive/$JE_VER.tar.gz && 	tar xf $JE_VER.tar.gz && 	cd jemalloc-$JE_VER && 	./autogen.sh && 	./configure --prefix=/opt/jemalloc && 	make -j$(nproc) > /dev/null && 	make install_bin install_include install_lib
+ ---> Using cache
+ ---> 04602dec98ea
+Step 7/37 : ENV RUBY_VER="2.6.1"
+ ---> Using cache
+ ---> 91800eaf6d92
+Step 8/37 : ENV CPPFLAGS="-I/opt/jemalloc/include"
+ ---> Using cache
+ ---> 7215e0ee8b33
+Step 9/37 : ENV LDFLAGS="-L/opt/jemalloc/lib/"
+ ---> Using cache
+ ---> fdcc3e39db2c
+Step 10/37 : RUN apt update && 	apt -y install build-essential 		bison libyaml-dev libgdbm-dev libreadline-dev 		libncurses5-dev libffi-dev zlib1g-dev libssl-dev && 	cd ~ && 	wget https://cache.ruby-lang.org/pub/ruby/${RUBY_VER%.*}/ruby-$RUBY_VER.tar.gz && 	tar xf ruby-$RUBY_VER.tar.gz && 	cd ruby-$RUBY_VER && 	./configure --prefix=/opt/ruby 	  --with-jemalloc 	  --with-shared 	  --disable-install-doc && 	ln -s /opt/jemalloc/lib/* /usr/lib/ && 	make -j$(nproc) > /dev/null && 	make install
+ ---> Using cache
+ ---> 7d92c8d142c0
+Step 11/37 : ENV PATH="${PATH}:/opt/ruby/bin:/opt/node/bin"
+ ---> Using cache
+ ---> 35477a4d6391
+Step 12/37 : RUN npm install -g yarn && 	gem install bundler && 	apt update && 	apt -y install git libicu-dev libidn11-dev 	libpq-dev libprotobuf-dev protobuf-compiler
+ ---> Using cache
+ ---> bdf6c1667fe8
+Step 13/37 : COPY Gemfile* package.json yarn.lock /opt/mastodon/
+ ---> Using cache
+ ---> e2a90b4ce748
+Step 14/37 : RUN cd /opt/mastodon && 	bundle install -j$(nproc) --deployment --without development test && 	yarn install --pure-lockfile
+ ---> Using cache
+ ---> f4d17ff79d48
+Step 15/37 : FROM ubuntu:18.04
+ ---> 94e814e2efa8
+Step 16/37 : COPY --from=build-dep /opt/node /opt/node
+ ---> Using cache
+ ---> 949276c5ade6
+Step 17/37 : COPY --from=build-dep /opt/ruby /opt/ruby
+ ---> Using cache
+ ---> 285f5052882c
+Step 18/37 : COPY --from=build-dep /opt/jemalloc /opt/jemalloc
+ ---> Using cache
+ ---> 427f3a7d08a4
+Step 19/37 : ENV PATH="${PATH}:/opt/ruby/bin:/opt/node/bin:/opt/mastodon/bin"
+ ---> Using cache
+ ---> 0862957e7187
+Step 20/37 : ARG UID=991
+ ---> Using cache
+ ---> 69b1e1d2833b
+Step 21/37 : ARG GID=991
+ ---> Using cache
+ ---> 0af63428ff69
+Step 22/37 : RUN apt update && 	echo "Etc/UTC" > /etc/localtime && 	ln -s /opt/jemalloc/lib/* /usr/lib/ && 	apt -y dist-upgrade && 	apt install -y whois wget && 	addgroup --gid $GID mastodon && 	useradd -m -u $UID -g $GID -d /opt/mastodon mastodon && 	echo "mastodon:`head /dev/urandom | tr -dc A-Za-z0-9 | head -c 24 | mkpasswd -s -m sha-256`" | chpasswd
+ ---> Using cache
+ ---> 949ee0df0042
+Step 23/37 : RUN apt -y --no-install-recommends install 	  libssl1.1 libpq5 imagemagick ffmpeg 	  libicu60 libprotobuf10 libidn11 libyaml-0-2 	  file ca-certificates tzdata libreadline7 && 	apt -y install gcc && 	ln -s /opt/mastodon /mastodon && 	gem install bundler && 	rm -rf /var/cache && 	rm -rf /var/lib/apt
+ ---> Using cache
+ ---> 211f2fe3f86f
+Step 24/37 : ENV TINI_VERSION="0.18.0"
+ ---> Using cache
+ ---> afaf093967ac
+Step 25/37 : ENV TINI_SUM="12d20136605531b09a2c2dac02ccee85e1b874eb322ef6baf7561cd93f93c855"
+ ---> Using cache
+ ---> d48cb3bef04c
+Step 26/37 : ADD https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini /tini
+
+ ---> Using cache
+ ---> fd384ca9ca62
+Step 27/37 : RUN echo "$TINI_SUM tini" | sha256sum -c -
+ ---> Using cache
+ ---> 8232ebb087f3
+Step 28/37 : RUN chmod +x /tini
+ ---> Using cache
+ ---> e098065c1979
+Step 29/37 : COPY --chown=mastodon:mastodon . /opt/mastodon
+ ---> 74681a746445
+Step 30/37 : COPY --from=build-dep --chown=mastodon:mastodon /opt/mastodon /opt/mastodon
+ ---> c2134d2c2c99
+Step 31/37 : ENV RAILS_ENV="production"
+ ---> Running in 4e56526a9221
+Removing intermediate container 4e56526a9221
+ ---> 90a7f2421c82
+Step 32/37 : ENV NODE_ENV="production"
+ ---> Running in f911ae7b36a8
+Removing intermediate container f911ae7b36a8
+ ---> 577eb0c901d3
+Step 33/37 : ENV RAILS_SERVE_STATIC_FILES="true"
+ ---> Running in 08e0e1f62c70
+Removing intermediate container 08e0e1f62c70
+ ---> bbe98a2968a7
+Step 34/37 : USER mastodon
+ ---> Running in 01d9e97c025d
+Removing intermediate container 01d9e97c025d
+ ---> aa08655f21a1
+Step 35/37 : RUN cd ~ && 	OTP_SECRET=precompile_placeholder SECRET_KEY_BASE=precompile_placeholder rails assets:precompile && 	yarn cache clean
+ ---> Running in 3aff79a0cf87
+yarn install v1.15.2
+info Merge conflict detected in yarn.lock and successfully merged.
+[1/6] Validating package.json...
+[2/6] Resolving packages...
+[3/6] Fetching packages...
+info fsevents@1.2.4: The platform "linux" is incompatible with this module.
+info "fsevents@1.2.4" is an optional dependency and failed compatibility check. Excluding it from installation.
+[4/6] Linking dependencies...
+[91mwarning " > react-redux-loading-bar@4.0.8" has incorrect peer dependency "react-redux@^3.0.0 || ^4.0.0 || ^5.0.0".
+[0m[91mwarning "jest > jest-cli > @jest/core > jest-resolve-dependencies@24.5.0" has unmet peer dependency "jest-resolve@^24.1.0".
+[0m[91mwarning "jest > jest-cli > jest-config > jest-resolve@24.5.0" has unmet peer dependency "jest-haste-map@^24.0.0".
+[0m[5/6] Building fresh packages...
+[6/6] Cleaning modules...
+success Saved lockfile.
+Done in 37.08s.
+[91mI, [2019-04-13T01:19:52.008552 #7]  INFO -- : Writing /opt/mastodon/public/assets/doorkeeper/admin/application-a644908e7bab54fb749be0f59fb64a7480bbf9c4c2b79d4a65791cb7ab4d8730.css
+[0m[91mI, [2019-04-13T01:19:52.008877 #7]  INFO -- : Writing /opt/mastodon/public/assets/doorkeeper/admin/application-a644908e7bab54fb749be0f59fb64a7480bbf9c4c2b79d4a65791cb7ab4d8730.css.gz
+[0m[91mI, [2019-04-13T01:19:52.021380 #7]  INFO -- : Writing /opt/mastodon/public/assets/doorkeeper/application-c93dac2ad9d65e3393e0e2c958481e86ef7a5e5b0f6ce406842a7b99b25a4850.css
+[0m[91mI, [2019-04-13T01:19:52.021541 #7]  INFO -- : Writing /opt/mastodon/public/assets/doorkeeper/application-c93dac2ad9d65e3393e0e2c958481e86ef7a5e5b0f6ce406842a7b99b25a4850.css.gz
+[0m[91mI, [2019-04-13T01:19:52.024307 #7]  INFO -- : Writing /opt/mastodon/public/assets/pghero/favicon-db10337a56c45eb43c22ff5019546b520fa22c7281d4d385f235cbca67ed26bb.png
+[0m[91mI, [2019-04-13T01:19:52.267831 #7]  INFO -- : Writing /opt/mastodon/public/assets/pghero/application-b6568ba483c03c4fdcd8edd641f3b341ac0314ba01ab186645b8fc231cdff02e.js
+[0m[91mI, [2019-04-13T01:19:52.268027 #7]  INFO -- : Writing /opt/mastodon/public/assets/pghero/application-b6568ba483c03c4fdcd8edd641f3b341ac0314ba01ab186645b8fc231cdff02e.js.gz
+[0m[91mI, [2019-04-13T01:19:52.279649 #7]  INFO -- : Writing /opt/mastodon/public/assets/pghero/application-d7ee8e7dc0785de97337625e0f1030e1a892327ef4e72a48043ce09fd964874d.css
+[0m[91mI, [2019-04-13T01:19:52.279811 #7]  INFO -- : Writing /opt/mastodon/public/assets/pghero/application-d7ee8e7dc0785de97337625e0f1030e1a892327ef4e72a48043ce09fd964874d.css.gz
+[0mCompiling…
+Compiled all packs in /opt/mastodon/public/packs
+yarn cache v1.15.2
+success Cleared cache.
+Done in 3.93s.
+Removing intermediate container 3aff79a0cf87
+ ---> 3f49d48da257
+Step 36/37 : WORKDIR /opt/mastodon
+ ---> Running in 89a693dd47f4
+Removing intermediate container 89a693dd47f4
+ ---> a8114cafe8fa
+Step 37/37 : ENTRYPOINT ["/tini", "--"]
+ ---> Running in 5065f64c360f
+Removing intermediate container 5065f64c360f
+ ---> 14f794d3aec5
+Successfully built 14f794d3aec5
+Successfully tagged tootsuite/mastodon:latest
