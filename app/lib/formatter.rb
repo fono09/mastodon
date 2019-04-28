@@ -3,12 +3,6 @@
 require 'singleton'
 require_relative './sanitize_config'
 
-class CustomRender < Redcarpet::Render::HTML
-  def paragraph(text)
-      text
-  end
-end
-
 class Formatter
   include Singleton
   include RoutingHelper
@@ -41,9 +35,6 @@ class Formatter
     linkable_accounts << status.account
 
     html = raw_content
-    html_md = encode_markdown(html)
-    Rails.logger.info "html:#{html.inspect}, html_md:#{html_md.inspect}"
-    
     html = "RT @#{prepend_reblog} #{html}" if prepend_reblog
     html = encode_and_link_urls(html, linkable_accounts)
     html = encode_custom_emojis(html, status.emojis, options[:autoplay]) if options[:custom_emojify]
@@ -115,13 +106,6 @@ class Formatter
 
   def encode(html)
     html_entities.encode(html)
-  end
-
-  def encode_markdown(html)
-    link_attributes = { target: '_blank', rel: 'nofollow noopener' }
-    renderer = CustomRender.new(no_styles: true, link_attributes: link_attributes)
-    markdown = Redcarpet::Markdown.new(renderer, no_intra_enphasis: true, tables: true, autolink: true, strikethrough: true, space_after_headers: true, underline: true, highlight: true, footnotes: true)
-    markdown.render(html)
   end
 
   def encode_and_link_urls(html, accounts = nil, options = {})
