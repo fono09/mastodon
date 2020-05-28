@@ -115,5 +115,11 @@ services:
 
 networks:
   external_network:
+    ipam:
+      config:
+        - subnet: 172.31.0.0/28
   internal_network:
     internal: true
+    ipam:
+      config:
+        - subnet: 172.31.0.17/28
