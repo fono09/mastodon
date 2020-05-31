@@ -46,6 +46,7 @@ services:
     networks:
       - external_network
       - internal_network
+      - nginx_proxy_network
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider --proxy=off localhost:3000/health || exit 1"]
     ports:
@@ -69,7 +70,7 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider --proxy=off localhost:4000/api/v1/streaming/health || exit 1"]
     ports:
-      - "127.0.0.1:4000:4000"
+      - "4000:4000"
     depends_on:
       - db
       - redis
@@ -105,13 +106,6 @@ services:
 #      - external_network
 #      - internal_network
 #
-  gmail_relay:
-      image: lylescott/postfix-gmail-relay
-      restart: always
-      env_file: .env.production
-      networks:
-          - external_network
-          - internal_network
 
 networks:
   external_network:
@@ -123,3 +117,5 @@ networks:
     ipam:
       config:
         - subnet: 172.31.0.17/28
+  nginx_proxy_network:
+    external: true
