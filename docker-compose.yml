@@ -41,7 +41,7 @@ services:
         soft: -1
         hard: -1
 
-  web:
+  web: &web
     build: .
     image: tootsuite/mastodon
     restart: always
@@ -110,6 +110,16 @@ services:
 #      - external_network
 #      - internal_network
 #
+
+  web_blue:
+    <<: *web
+    ports:
+      - "3001:3000"
+
+  web_green:
+    <<: *web
+    ports:
+      - "3002:3000"
 
 networks:
   external_network:
