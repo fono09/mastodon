@@ -2,10 +2,17 @@
 
 class Webfinger
   class Error < StandardError; end
+  class GoneError < Error; end
+  class RedirectError < Error; end
 
   class Response
-    def initialize(body)
+    attr_reader :uri
+
+    def initialize(uri, body)
+      @uri  = uri
       @json = Oj.load(body, mode: :strict)
+
+      validate_response!
     end
 
     def subject
@@ -21,6 +28,10 @@ class Webfinger
     def links
       @links ||= @json['links'].map { |link| [link['rel'], link] }.to_h
     end
+
+    def validate_response!
+      raise Webfinger::Error, "Missing subject in response for #{@uri}" if subject.blank?
+    end
   end
 
   def initialize(uri)
@@ -32,7 +43,7 @@ class Webfinger
   end
 
   def perform
-    Response.new(body_from_webfinger)
+    Response.new(@uri, body_from_webfinger)
   rescue Oj::ParseError
     raise Webfinger::Error, "Invalid JSON in response for #{@uri}"
   rescue Addressable::URI::InvalidURIError

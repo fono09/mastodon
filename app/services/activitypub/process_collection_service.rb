@@ -3,8 +3,8 @@
 class ActivityPub::ProcessCollectionService < BaseService
   include JsonLdHelper
 
-  def call(body, account, **options)
-    @account = account
+  def call(body, actor, **options)
+    @account = actor
     @json    = original_json = Oj.load(body, mode: :strict)
     @options = options
 
@@ -16,6 +16,16 @@ class ActivityPub::ProcessCollectionService < BaseService
     end
 
     return if !supported_context? || (different_actor? && verify_account!.nil?) || suspended_actor? || @account.local?
+    return unless @account.is_a?(Account)
+
+    if @json['signature'].present?
+      # We have verified the signature, but in the compaction step above, might
+      # have introduced incompatibilities with other servers that do not
+      # normalize the JSON-LD documents (for instance, previous Mastodon
+      # versions), so skip redistribution if we can't get a safe document.
+      patch_for_forwarding!(original_json, @json)
+      @json.delete('signature') unless safe_for_forwarding?(original_json, @json)
+    end
 
     if @json['signature'].present?
       # We have verified the signature, but in the compaction step above, might
@@ -66,8 +76,10 @@ class ActivityPub::ProcessCollectionService < BaseService
   end
 
   def verify_account!
-    @options[:relayed_through_account] = @account
-    @account = ActivityPub::LinkedDataSignature.new(@json).verify_account!
+    @options[:relayed_through_actor] = @account
+    @account = ActivityPub::LinkedDataSignature.new(@json).verify_actor!
+    @account = nil unless @account.is_a?(Account)
+    @account
   rescue JSON::LD::JsonLdError => e
     Rails.logger.debug "Could not verify LD-Signature for #{value_or_id(@json['actor'])}: #{e.message}"
     nil
