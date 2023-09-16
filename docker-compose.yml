@@ -17,6 +17,9 @@ services:
       - 5432
     ports:
       - '192.168.100.101:5432:5432'
+    deploy:
+      placement:
+        constraints: [node.hostname == okaya-srv-0]
 
   redis:
     restart: always
@@ -27,6 +30,9 @@ services:
       test: ['CMD', 'redis-cli', 'ping']
     volumes:
       - ./redis:/data
+    deploy:
+      placement:
+        constraints: [node.hostname == okaya-srv-0]
 
 #  es:
 #    restart: always
@@ -79,12 +85,14 @@ services:
       - redis
 #      - es
     volumes:
-      - ./public/system:/mastodon/public/system
+      - public-system:/mastodon/public/system
     environment:
-      - VIRTUAL_HOST=ma.fono.jp
-      - VIRTUAL_PORT=3000
       - LETSENCRYPT_HOST=ma.fono.jp
       - LETSENCRYPT_EMAIL=fono@fono.jp
+    deploy:
+      mode: replicated
+      replicas: 3
+      endpoint_mode: vip
 
   streaming:
     build: .
@@ -94,15 +102,20 @@ services:
     command: node ./streaming
     networks:
       - external_network
+      - nginx_proxy_network
       - internal_network
     healthcheck:
       # prettier-ignore
       test: ['CMD-SHELL', 'wget -q --spider --proxy=off localhost:4000/api/v1/streaming/health || exit 1']
-    ports:
-      - '4000:4000'
+    # ports:
+    #   - '4000:4000'
     depends_on:
       - db
       - redis
+    deploy:
+      endpoint_mode: dnsrr
+      placement:
+        constraints: [node.hostname == okaya-srv-0]
 
   sidekiq:
     build: .
@@ -117,9 +130,13 @@ services:
       - external_network
       - internal_network
     volumes:
-      - ./public/system:/mastodon/public/system
+      - public-system:/mastodon/public/system
     healthcheck:
       test: ['CMD-SHELL', "ps aux | grep '[s]idekiq\ 6' || false"]
+    deploy:
+      mode: replicated
+      replicas: 3
+      endpoint_mode: vip
 
   ## Uncomment to enable federation with tor instances along with adding the following ENV variables
   ## http_proxy=http://privoxy:8118
@@ -138,15 +155,20 @@ services:
   #     - external_network
   #     - internal_network
 
+volumes:
+  public-system:
+    driver_opts:
+      type: "nfs"
+      o: "addr=192.168.100.101,rw"
+      device: ":/home/fono/ghq/github.com/tootsuite/mastodon/public/system"
+
 networks:
   external_network:
-    ipam:
-      config:
-        - subnet: 172.31.0.0/28
+    name: mastodon_external
+    external: true
   internal_network:
-    internal: true
-    ipam:
-      config:
-        - subnet: 172.31.0.17/28
+    name: mastodon_internal
+    external: true
   nginx_proxy_network:
+    name: nginx-proxy-okaya
     external: true
