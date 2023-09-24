@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'rails_helper'
 
 RSpec.describe ActivityPub::Activity::Create do
@@ -29,7 +31,7 @@ RSpec.describe ActivityPub::Activity::Create do
         subject.perform
       end
 
-      context 'object has been edited' do
+      context 'when object has been edited' do
         let(:object_json) do
           {
             id: [ActivityPub::TagManager.instance.uri_for(sender), '#bar'].join,
@@ -51,11 +53,11 @@ RSpec.describe ActivityPub::Activity::Create do
           status = sender.statuses.first
 
           expect(status).to_not be_nil
-          expect(status.edited?).to eq true
+          expect(status.edited?).to be true
         end
       end
 
-      context 'object has update date equal to creation date' do
+      context 'when object has update date equal to creation date' do
         let(:object_json) do
           {
             id: [ActivityPub::TagManager.instance.uri_for(sender), '#bar'].join,
@@ -77,11 +79,11 @@ RSpec.describe ActivityPub::Activity::Create do
           status = sender.statuses.first
 
           expect(status).to_not be_nil
-          expect(status.edited?).to eq false
+          expect(status.edited?).to be false
         end
       end
 
-      context 'unknown object type' do
+      context 'with an unknown object type' do
         let(:object_json) do
           {
             id: [ActivityPub::TagManager.instance.uri_for(sender), '#bar'].join,
@@ -95,7 +97,7 @@ RSpec.describe ActivityPub::Activity::Create do
         end
       end
 
-      context 'standalone' do
+      context 'with a standalone' do
         let(:object_json) do
           {
             id: [ActivityPub::TagManager.instance.uri_for(sender), '#bar'].join,
@@ -119,7 +121,7 @@ RSpec.describe ActivityPub::Activity::Create do
         end
       end
 
-      context 'public with explicit public address' do
+      context 'when public with explicit public address' do
         let(:object_json) do
           {
             id: [ActivityPub::TagManager.instance.uri_for(sender), '#bar'].join,
@@ -137,7 +139,7 @@ RSpec.describe ActivityPub::Activity::Create do
         end
       end
 
-      context 'public with as:Public' do
+      context 'when public with as:Public' do
         let(:object_json) do
           {
             id: [ActivityPub::TagManager.instance.uri_for(sender), '#bar'].join,
@@ -155,7 +157,7 @@ RSpec.describe ActivityPub::Activity::Create do
         end
       end
 
-      context 'public with Public' do
+      context 'when public with Public' do
         let(:object_json) do
           {
             id: [ActivityPub::TagManager.instance.uri_for(sender), '#bar'].join,
@@ -173,7 +175,7 @@ RSpec.describe ActivityPub::Activity::Create do
         end
       end
 
-      context 'unlisted with explicit public address' do
+      context 'when unlisted with explicit public address' do
         let(:object_json) do
           {
             id: [ActivityPub::TagManager.instance.uri_for(sender), '#bar'].join,
@@ -191,7 +193,7 @@ RSpec.describe ActivityPub::Activity::Create do
         end
       end
 
-      context 'unlisted with as:Public' do
+      context 'when unlisted with as:Public' do
         let(:object_json) do
           {
             id: [ActivityPub::TagManager.instance.uri_for(sender), '#bar'].join,
@@ -209,7 +211,7 @@ RSpec.describe ActivityPub::Activity::Create do
         end
       end
 
-      context 'unlisted with Public' do
+      context 'when unlisted with Public' do
         let(:object_json) do
           {
             id: [ActivityPub::TagManager.instance.uri_for(sender), '#bar'].join,
@@ -227,7 +229,7 @@ RSpec.describe ActivityPub::Activity::Create do
         end
       end
 
-      context 'private' do
+      context 'when private' do
         let(:object_json) do
           {
             id: [ActivityPub::TagManager.instance.uri_for(sender), '#bar'].join,
@@ -245,17 +247,17 @@ RSpec.describe ActivityPub::Activity::Create do
         end
       end
 
-      context 'private with inlined Collection in audience' do
+      context 'when private with inlined Collection in audience' do
         let(:object_json) do
           {
             id: [ActivityPub::TagManager.instance.uri_for(sender), '#bar'].join,
             type: 'Note',
             content: 'Lorem ipsum',
             to: {
-              'type': 'OrderedCollection',
-              'id': 'http://example.com/followers',
-              'first': 'http://example.com/followers?page=true',
-            }
+              type: 'OrderedCollection',
+              id: 'http://example.com/followers',
+              first: 'http://example.com/followers?page=true',
+            },
           }
         end
 
@@ -267,7 +269,7 @@ RSpec.describe ActivityPub::Activity::Create do
         end
       end
 
-      context 'limited' do
+      context 'when limited' do
         let(:recipient) { Fabricate(:account) }
 
         let(:object_json) do
@@ -292,7 +294,7 @@ RSpec.describe ActivityPub::Activity::Create do
         end
       end
 
-      context 'direct' do
+      context 'when direct' do
         let(:recipient) { Fabricate(:account) }
 
         let(:object_json) do
@@ -316,7 +318,7 @@ RSpec.describe ActivityPub::Activity::Create do
         end
       end
 
-      context 'as a reply' do
+      context 'with a reply' do
         let(:original_status) { Fabricate(:status) }
 
         let(:object_json) do
@@ -407,7 +409,6 @@ RSpec.describe ActivityPub::Activity::Create do
           expect(status.media_attachments.map(&:remote_url)).to include('http://example.com/attachment.png')
         end
       end
-
 
       context 'with media attachments with long description' do
         let(:object_json) do
@@ -667,33 +668,89 @@ RSpec.describe ActivityPub::Activity::Create do
           expect(status).to_not be_nil
         end
       end
-    end
 
-    context 'when sender is followed by local users' do
-      subject { described_class.new(json, sender, delivery: true) }
+      context 'with poll' do
+        let(:object_json) do
+          {
+            id: [ActivityPub::TagManager.instance.uri_for(sender), '#bar'].join,
+            type: 'Question',
+            content: 'Which color was the submarine?',
+            oneOf: [
+              {
+                name: 'Yellow',
+                replies: {
+                  type: 'Collection',
+                  totalItems: 10,
+                },
+              },
+              {
+                name: 'Blue',
+                replies: {
+                  type: 'Collection',
+                  totalItems: 3,
+                },
+              },
+            ],
+          }
+        end
 
-      before do
-        Fabricate(:account).follow!(sender)
-        subject.perform
+        it 'creates status' do
+          status = sender.statuses.first
+          expect(status).to_not be_nil
+          expect(status.poll).to_not be_nil
+        end
+
+        it 'creates a poll' do
+          poll = sender.polls.first
+          expect(poll).to_not be_nil
+          expect(poll.status).to_not be_nil
+          expect(poll.options).to eq %w(Yellow Blue)
+          expect(poll.cached_tallies).to eq [10, 3]
+        end
       end
 
-      let(:object_json) do
-        {
-          id: [ActivityPub::TagManager.instance.uri_for(sender), '#bar'].join,
-          type: 'Note',
-          content: 'Lorem ipsum',
-        }
+      context 'when a vote to a local poll' do
+        let(:poll) { Fabricate(:poll, options: %w(Yellow Blue)) }
+        let!(:local_status) { Fabricate(:status, poll: poll) }
+
+        let(:object_json) do
+          {
+            id: [ActivityPub::TagManager.instance.uri_for(sender), '#bar'].join,
+            type: 'Note',
+            name: 'Yellow',
+            inReplyTo: ActivityPub::TagManager.instance.uri_for(local_status),
+          }
+        end
+
+        it 'adds a vote to the poll with correct uri' do
+          vote = poll.votes.first
+          expect(vote).to_not be_nil
+          expect(vote.uri).to eq object_json[:id]
+          expect(poll.reload.cached_tallies).to eq [1, 0]
+        end
       end
 
-      it 'creates status' do
-        status = sender.statuses.first
+      context 'when a vote to an expired local poll' do
+        let(:poll) do
+          poll = Fabricate.build(:poll, options: %w(Yellow Blue), expires_at: 1.day.ago)
+          poll.save(validate: false)
+          poll
+        end
+        let!(:local_status) { Fabricate(:status, poll: poll) }
+
+        let(:object_json) do
+          {
+            id: [ActivityPub::TagManager.instance.uri_for(sender), '#bar'].join,
+            type: 'Note',
+            name: 'Yellow',
+            inReplyTo: ActivityPub::TagManager.instance.uri_for(local_status),
+          }
+        end
 
     context 'with an encrypted message' do
-      let(:recipient) { Fabricate(:account) }
-      let(:target_device) { Fabricate(:device, account: recipient) }
-
       subject { described_class.new(json, sender, delivery: true, delivered_to_account_id: recipient.id) }
 
+      let(:recipient) { Fabricate(:account) }
       let(:object_json) do
         {
           id: [ActivityPub::TagManager.instance.uri_for(sender), '#bar'].join,
@@ -715,6 +772,7 @@ RSpec.describe ActivityPub::Activity::Create do
           },
         }
       end
+      let(:target_device) { Fabricate(:device, account: recipient) }
 
       before do
         subject.perform
@@ -763,22 +821,15 @@ RSpec.describe ActivityPub::Activity::Create do
       it 'creates status' do
         status = sender.statuses.first
 
->>>>>>> v2.8.0
         expect(status).to_not be_nil
         expect(status.text).to eq 'Lorem ipsum'
       end
     end
 
     context 'when sender replies to local status' do
-      let!(:local_status) { Fabricate(:status) }
-
       subject { described_class.new(json, sender, delivery: true) }
 
-      before do
-        subject.perform
-      end
-
->>>>>>> v2.8.0
+      let!(:local_status) { Fabricate(:status) }
       let(:object_json) do
         {
           id: [ActivityPub::TagManager.instance.uri_for(sender), '#bar'].join,
@@ -786,6 +837,10 @@ RSpec.describe ActivityPub::Activity::Create do
           content: 'Lorem ipsum',
           inReplyTo: ActivityPub::TagManager.instance.uri_for(local_status),
         }
+      end
+
+      before do
+        subject.perform
       end
 
       it 'creates status' do
@@ -797,14 +852,9 @@ RSpec.describe ActivityPub::Activity::Create do
     end
 
     context 'when sender targets a local user' do
-      let!(:local_account) { Fabricate(:account) }
-
       subject { described_class.new(json, sender, delivery: true) }
 
-      before do
-        subject.perform
-      end
-
+      let!(:local_account) { Fabricate(:account) }
       let(:object_json) do
         {
           id: [ActivityPub::TagManager.instance.uri_for(sender), '#bar'].join,
@@ -812,6 +862,10 @@ RSpec.describe ActivityPub::Activity::Create do
           content: 'Lorem ipsum',
           to: ActivityPub::TagManager.instance.uri_for(local_account),
         }
+      end
+
+      before do
+        subject.perform
       end
 
       it 'creates status' do
@@ -823,14 +877,9 @@ RSpec.describe ActivityPub::Activity::Create do
     end
 
     context 'when sender cc\'s a local user' do
-      let!(:local_account) { Fabricate(:account) }
-
       subject { described_class.new(json, sender, delivery: true) }
 
-      before do
-        subject.perform
-      end
-
+      let!(:local_account) { Fabricate(:account) }
       let(:object_json) do
         {
           id: [ActivityPub::TagManager.instance.uri_for(sender), '#bar'].join,
@@ -838,6 +887,10 @@ RSpec.describe ActivityPub::Activity::Create do
           content: 'Lorem ipsum',
           cc: ActivityPub::TagManager.instance.uri_for(local_account),
         }
+      end
+
+      before do
+        subject.perform
       end
 
       it 'creates status' do
@@ -855,7 +908,6 @@ RSpec.describe ActivityPub::Activity::Create do
         subject.perform
       end
 
->>>>>>> v2.8.0
       let(:object_json) do
         {
           id: [ActivityPub::TagManager.instance.uri_for(sender), '#bar'].join,

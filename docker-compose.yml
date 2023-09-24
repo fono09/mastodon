@@ -6,7 +6,6 @@ services:
     shm_size: 256mb
     networks:
       - internal_network
-      - external_network
     healthcheck:
       test: ['CMD', 'pg_isready', '-U', 'postgres']
     volumes:
@@ -15,8 +14,6 @@ services:
       - 'POSTGRES_HOST_AUTH_METHOD=trust'
     expose:
       - 5432
-    ports:
-      - '192.168.100.101:5432:5432'
     deploy:
       placement:
         constraints: [node.hostname == okaya-srv-0]
@@ -67,7 +64,7 @@ services:
 
   web: &web
     build: .
-    image: ghcr.io/mastodon/mastodon
+    image: ghcr.io/mastodon/mastodon:v4.2.0
     restart: always
     env_file: .env.production
     command: bash -c "rm -f /mastodon/tmp/pids/server.pid; bundle exec rails s -p 3000"
@@ -96,7 +93,7 @@ services:
 
   streaming:
     build: .
-    image: ghcr.io/mastodon/mastodon
+    image: ghcr.io/mastodon/mastodon:v4.2.0
     restart: always
     env_file: .env.production
     command: node ./streaming
@@ -119,7 +116,7 @@ services:
 
   sidekiq:
     build: .
-    image: ghcr.io/mastodon/mastodon
+    image: ghcr.io/mastodon/mastodon:v4.2.0
     restart: always
     env_file: .env.production
     command: bundle exec sidekiq
