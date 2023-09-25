@@ -44,6 +44,9 @@
 /redis
 /elasticsearch
 
+# Ignore posgres backup
+/postgres_backups
+
 # Ignore Apple files
 .DS_Store
 
