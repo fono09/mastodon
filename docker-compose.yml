@@ -25,6 +25,7 @@ services:
       test: ""
     volumes:
       - ./postgres_backups:/backups
+      - /usr/share/zoneinfo/Asia/Tokyo:/etc/localtime
     deploy:
       placement:
         constraints: [node.hostname == okaya-srv-0]
