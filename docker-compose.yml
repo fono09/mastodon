@@ -16,7 +16,7 @@ services:
       - 5432
     deploy:
       placement:
-        constraints: [node.hostname == okaya-srv-0]
+        constraints: [node.hostname == okaya]
 
   db_backup:
     <<: *db
@@ -28,7 +28,7 @@ services:
       - /usr/share/zoneinfo/Asia/Tokyo:/etc/localtime
     deploy:
       placement:
-        constraints: [node.hostname == okaya-srv-0]
+        constraints: [node.hostname == okaya]
       replicas: 0
       restart_policy:
         condition: none
@@ -44,7 +44,7 @@ services:
       - ./redis:/data
     deploy:
       placement:
-        constraints: [node.hostname == okaya-srv-0]
+        constraints: [node.hostname == okaya]
 
   es:
     restart: always
@@ -76,7 +76,7 @@ services:
         hard: 65536
     deploy:
       placement:
-        constraints: [node.hostname == okaya-srv-0]
+        constraints: [node.hostname == okaya]
 
   web: &web
     build: .
@@ -117,7 +117,7 @@ services:
       - SKIP_POST_DEPLOYMENT_MIGRATIONS=true
     deploy:
       placement:
-        constraints: [node.hostname == okaya-srv-0]
+        constraints: [node.hostname == okaya]
       replicas: 0
       restart_policy:
         condition: none
@@ -130,7 +130,7 @@ services:
     ports: []
     deploy:
       placement:
-        constraints: [node.hostname == okaya-srv-0]
+        constraints: [node.hostname == okaya]
       replicas: 0
       restart_policy:
         condition: none
@@ -143,7 +143,7 @@ services:
     ports: []
     deploy:
       placement:
-        constraints: [node.hostname == okaya-srv-0]
+        constraints: [node.hostname == okaya]
       replicas: 0
       restart_policy:
         condition: none
