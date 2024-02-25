@@ -888,6 +888,12 @@ RSpec.describe ActivityPub::Activity::Create do
           }
         end
 
+        it 'does not add a vote to the poll' do
+          expect(poll.votes.first).to be_nil
+        end
+      end
+    end
+
     context 'with an encrypted message' do
       subject { described_class.new(json, sender, delivery: true, delivered_to_account_id: recipient.id) }
 

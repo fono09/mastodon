@@ -84,6 +84,7 @@ describe RelationshipsController do
           expect(response).to redirect_to '/auth/sign_in'
         end
       end
+
       include_examples 'redirects back to followers page'
     end
   end

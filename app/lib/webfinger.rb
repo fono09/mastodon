@@ -108,21 +108,10 @@ class Webfinger
   end
 
   def host_meta_url
-    "https://#{@domain}/.well-known/host-meta"
-=======
-    if @domain.end_with? '.onion'
-      "http://#{@domain}/.well-known/webfinger?resource=#{@uri}"
-    else
-      "https://#{@domain}/.well-known/webfinger?resource=#{@uri}"
-    end
-  end
-
-  def host_meta_url
     if @domain.end_with? '.onion'
       "http://#{@domain}/.well-known/host-meta"
     else
       "https://#{@domain}/.well-known/host-meta"
     end
->>>>>>> v4.2.0
   end
 end

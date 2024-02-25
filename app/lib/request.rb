@@ -32,11 +32,7 @@ class PerOperationWithDeadline < HTTP::Timeout::PerOperation
 
   # Read data from the socket
   def readpartial(size, buffer = nil)
-<<<<<<< HEAD
-    @deadline ||= Process.clock_gettime(Process::CLOCK_MONOTONIC) + @read_timeout
-=======
     @deadline ||= Process.clock_gettime(Process::CLOCK_MONOTONIC) + @read_deadline
->>>>>>> v4.2.0
 
     timeout = false
     loop do
@@ -45,12 +41,8 @@ class PerOperationWithDeadline < HTTP::Timeout::PerOperation
       return :eof if result.nil?
 
       remaining_time = @deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
-<<<<<<< HEAD
-      raise HTTP::TimeoutError, "Read timed out after #{@read_timeout} seconds" if timeout || remaining_time <= 0
-=======
       raise HTTP::TimeoutError, "Read timed out after #{@read_timeout} seconds" if timeout
       raise HTTP::TimeoutError, "Read timed out after a total of #{@read_deadline} seconds" if remaining_time <= 0
->>>>>>> v4.2.0
       return result if result != :wait_readable
 
       # marking the socket for timeout. Why is this not being raised immediately?
@@ -63,11 +55,7 @@ class PerOperationWithDeadline < HTTP::Timeout::PerOperation
       # timeout. Else, the first timeout was a proper timeout.
       # This hack has to be done because io/wait#wait_readable doesn't provide a value for when
       # the socket is closed by the server, and HTTP::Parser doesn't provide the limit for the chunks.
-<<<<<<< HEAD
-      timeout = true unless @socket.to_io.wait_readable(remaining_time)
-=======
       timeout = true unless @socket.to_io.wait_readable([remaining_time, @read_timeout].min)
->>>>>>> v4.2.0
     end
   end
 end

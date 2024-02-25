@@ -81,10 +81,21 @@ describe Scheduler::AccountsStatusesCleanupScheduler do
       end
     end
 
-      it 'eventually deletes every deletable toot given enough runs' do
-        stub_const 'Scheduler::AccountsStatusesCleanupScheduler::MAX_BUDGET', 4
+    before do
+      # Policies for the accounts
+      Fabricate(:account_statuses_cleanup_policy, account: account_alice)
+      Fabricate(:account_statuses_cleanup_policy, account: account_chris)
+      Fabricate(:account_statuses_cleanup_policy, account: account_dave, enabled: false)
+      Fabricate(:account_statuses_cleanup_policy, account: account_erin)
 
-        expect { 3.times { subject.perform } }.to change(Status, :count).by(-cleanable_statuses_count)
+      # Create a bunch of old statuses
+      4.times do
+        Fabricate(:status, account: account_alice, created_at: 3.years.ago)
+        Fabricate(:status, account: account_bob, created_at: 3.years.ago)
+        Fabricate(:status, account: account_chris, created_at: 3.years.ago)
+        Fabricate(:status, account: account_dave, created_at: 3.years.ago)
+        Fabricate(:status, account: account_erin, created_at: 3.years.ago)
+        Fabricate(:status, account: remote, created_at: 3.years.ago)
       end
 
       # Create a bunch of newer statuses
