@@ -104,7 +104,7 @@ services:
       - LETSENCRYPT_EMAIL=fono@fono.jp
     deploy:
       mode: replicated
-      replicas: 3
+      replicas: 4
       endpoint_mode: vip
   
   before_migration:
@@ -115,6 +115,19 @@ services:
     ports: []
     environment:
       - SKIP_POST_DEPLOYMENT_MIGRATIONS=true
+    deploy:
+      placement:
+        constraints: [node.hostname == okaya]
+      replicas: 0
+      restart_policy:
+        condition: none
+
+  maintainance:
+    <<: *web
+    command: bash -c "bin/tootctl accounts prune && bin/tootctl media remove && bin/tootctl media remove-orphans && bin/tootctl preview_cards remove --days=21 && bin/tootctl media usage"
+    healthcheck:
+      test: ""
+    ports: []
     deploy:
       placement:
         constraints: [node.hostname == okaya]
@@ -169,7 +182,7 @@ services:
       - redis
     deploy:
       mode: replicated
-      replicas: 3
+      replicas: 4
       endpoint_mode: vip
 
   sidekiq:
@@ -190,7 +203,7 @@ services:
       test: ['CMD-SHELL', "ps aux | grep '[s]idekiq\ 6' || false"]
     deploy:
       mode: replicated
-      replicas: 3
+      replicas: 4
       endpoint_mode: vip
 
   ## Uncomment to enable federation with tor instances along with adding the following ENV variables
