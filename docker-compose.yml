@@ -82,6 +82,7 @@ services:
     build: .
     image: ghcr.io/mastodon/mastodon:v4.2.8
     restart: always
+    env_file: .env.production
     command: bash -c "rm -f /mastodon/tmp/pids/server.pid; bundle exec rails s -p 3000"
     networks:
       - external_network
@@ -163,6 +164,7 @@ services:
     build: .
     image: ghcr.io/mastodon/mastodon:v4.2.8
     restart: always
+    env_file: .env.production
     command: node ./streaming
     networks:
       - external_network
@@ -185,6 +187,7 @@ services:
     build: .
     image: ghcr.io/mastodon/mastodon:v4.2.8
     restart: always
+    env_file: .env.production
     command: bundle exec sidekiq
     depends_on:
       - db
