@@ -8,8 +8,8 @@ defaults: &defaults
   site_extended_description: ''
   site_terms: '荒らさないこと'
   site_contact_username: 'fono'
-  site_contact_email: 'fono@fono.jp'
-  registrations_mode: 'open'
+  site_contact_email: ''
+  registrations_mode: 'approved'
   profile_directory: true
   closed_registrations_message: ''
   timeline_preview: true
