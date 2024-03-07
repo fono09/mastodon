@@ -82,7 +82,6 @@ services:
     build: .
     image: ghcr.io/mastodon/mastodon:v4.2.8
     restart: always
-    env_file: .env.production
     command: bash -c "rm -f /mastodon/tmp/pids/server.pid; bundle exec rails s -p 3000"
     networks:
       - external_network
@@ -97,8 +96,6 @@ services:
       - db
       - redis
       - es
-    volumes:
-      - public-system:/mastodon/public/system
     environment:
       - LETSENCRYPT_HOST=ma.fono.jp
       - LETSENCRYPT_EMAIL=fono@fono.jp
@@ -166,7 +163,6 @@ services:
     build: .
     image: ghcr.io/mastodon/mastodon:v4.2.8
     restart: always
-    env_file: .env.production
     command: node ./streaming
     networks:
       - external_network
@@ -189,7 +185,6 @@ services:
     build: .
     image: ghcr.io/mastodon/mastodon:v4.2.8
     restart: always
-    env_file: .env.production
     command: bundle exec sidekiq
     depends_on:
       - db
@@ -197,8 +192,6 @@ services:
     networks:
       - external_network
       - internal_network
-    volumes:
-      - public-system:/mastodon/public/system
     healthcheck:
       test: ['CMD-SHELL', "ps aux | grep '[s]idekiq\ 6' || false"]
     deploy:
@@ -222,13 +215,6 @@ services:
   #   networks:
   #     - external_network
   #     - internal_network
-
-volumes:
-  public-system:
-    driver_opts:
-      type: "nfs"
-      o: "addr=192.168.100.101,rw"
-      device: ":/home/fono/ghq/github.com/tootsuite/mastodon/public/system"
 
 networks:
   external_network:
