@@ -1,4 +1,3 @@
-version: '3'
 services:
   db: &db
     restart: always
@@ -23,7 +22,7 @@ services:
     <<: *db
     command: sh -c "pg_basebackup -F t -D /backups/`date +%Y%m%d` -z -h db -U postgres -P && chown 1000:1000 -R /backups/*"
     healthcheck:
-      test: ""
+      test: ''
     volumes:
       - ./postgres_backups:/backups
       - /usr/share/zoneinfo/Asia/Tokyo:/etc/localtime
@@ -51,23 +50,27 @@ services:
     restart: always
     image: docker.elastic.co/elasticsearch/elasticsearch:7.17.4
     environment:
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m -Des.enforce.bootstrap.checks=true"
-      - "xpack.license.self_generated.type=basic"
-      - "xpack.security.enabled=false"
-      - "xpack.watcher.enabled=false"
-      - "xpack.graph.enabled=false"
-      - "xpack.ml.enabled=false"
-      - "bootstrap.memory_lock=true"
-      - "cluster.name=es-mastodon"
-      - "discovery.type=single-node"
-      - "thread_pool.write.queue_size=1000"
+      - 'ES_JAVA_OPTS=-Xms512m -Xmx512m -Des.enforce.bootstrap.checks=true'
+      - 'xpack.license.self_generated.type=basic'
+      - 'xpack.security.enabled=false'
+      - 'xpack.watcher.enabled=false'
+      - 'xpack.graph.enabled=false'
+      - 'xpack.ml.enabled=false'
+      - 'bootstrap.memory_lock=true'
+      - 'cluster.name=es-mastodon'
+      - 'discovery.type=single-node'
+      - 'thread_pool.write.queue_size=1000'
     networks:
-       - external_network
-       - internal_network
+      - external_network
+      - internal_network
     healthcheck:
-       test: ["CMD-SHELL", "curl --silent --fail localhost:9200/_cluster/health || exit 1"]
+      test:
+        [
+          'CMD-SHELL',
+          'curl --silent --fail localhost:9200/_cluster/health || exit 1',
+        ]
     volumes:
-       - ./elasticsearch:/usr/share/elasticsearch/data
+      - ./elasticsearch:/usr/share/elasticsearch/data
     ulimits:
       memlock:
         soft: -1
@@ -105,12 +108,12 @@ services:
       mode: replicated
       replicas: 4
       endpoint_mode: vip
-  
+
   before_migration:
     <<: *web
     command: bash -c "bundle exec rails db:migrate"
     healthcheck:
-      test: ""
+      test: ''
     ports: []
     environment:
       - SKIP_POST_DEPLOYMENT_MIGRATIONS=true
@@ -125,7 +128,7 @@ services:
     <<: *web
     command: bash -c "bin/tootctl accounts prune && bin/tootctl media remove && bin/tootctl media remove-orphans && bin/tootctl preview_cards remove --days=21 && bin/tootctl media usage"
     healthcheck:
-      test: ""
+      test: ''
     ports: []
     deploy:
       placement:
@@ -138,7 +141,7 @@ services:
     <<: *web
     command: bash -c "bundle exec rails db:migrate"
     healthcheck:
-      test: ""
+      test: ''
     ports: []
     deploy:
       placement:
@@ -151,7 +154,7 @@ services:
     <<: *web
     command: bash -c "bin/tootctl search deploy --reset-chewy --concurrency=8"
     healthcheck:
-      test: ""
+      test: ''
     ports: []
     deploy:
       placement:
@@ -159,7 +162,6 @@ services:
       replicas: 0
       restart_policy:
         condition: none
-
 
   streaming:
     build: .
