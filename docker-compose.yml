@@ -95,19 +95,26 @@ services:
     healthcheck:
       # prettier-ignore
       test: ['CMD-SHELL', 'wget -q --spider --proxy=off localhost:3000/health || exit 1']
-    ports:
-      - '127.0.0.1:3000:3000'
+    expose:
+       - 3000
     depends_on:
       - db
       - redis
       - es
-    environment:
-      - LETSENCRYPT_HOST=ma.fono.jp
-      - LETSENCRYPT_EMAIL=fono@fono.jp
     deploy:
       mode: replicated
       replicas: 4
       endpoint_mode: vip
+      labels:
+        traefik.enable: 'true'
+        treafik.docker.network: nginx-proxy-okaya
+        traefik.http.routers.mastodon-web.rule: 'Host(`ma.fono.jp`)'
+        traefik.http.routers.mastodon-web.tls: 'true'
+        traefik.http.routers.mastodon-web.tls.certresolver: zerossl
+        traefik.http.routers.mastodon-web.entrypoints: websecure
+        traefik.http.services.mastodon-web-service.loadbalancer.server.port: 3000
+        traefik.http.middlewares.mastodon-web-redirect-https.redirectscheme.scheme: https
+        traefik.http.middlewares.mastodon-web-redirect-https.redirectscheme.permanent: 'true'
 
   before_migration:
     <<: *web
@@ -176,8 +183,8 @@ services:
     healthcheck:
       # prettier-ignore
       test: ['CMD-SHELL', 'wget -q --spider --proxy=off localhost:4000/api/v1/streaming/health || exit 1']
-    # ports:
-    #   - '4000:4000'
+    expose:
+      - '4000'
     depends_on:
       - db
       - redis
@@ -185,6 +192,13 @@ services:
       mode: replicated
       replicas: 4
       endpoint_mode: vip
+      labels:
+        traefik.enable: 'true'
+        treafik.docker.network: nginx-proxy-okaya
+        traefik.http.routers.mastodon-streaming.rule: 'Host(`ma.fono.jp`) && PathPrefix(`/api/v1/streaming`)'
+        traefik.http.routers.mastodon-streaming.tls: 'true'
+        traefik.http.routers.mastodon-streaming.tls.certresolver: zerossl
+        traefik.http.services.mastodon-streaming-service.loadbalancer.server.port: 4000
 
   sidekiq:
     build: .
