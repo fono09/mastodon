@@ -109,17 +109,29 @@ services:
       mode: replicated
       replicas: 4
       endpoint_mode: vip
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
       labels:
         traefik.enable: 'true'
-        treafik.docker.network: nginx-proxy-okaya
+        traefik.docker.network: nginx-proxy-okaya
+        traefik.http.middlewares.mastodon-web-hsts.headers.forceSTSHeader: 'true'
+        traefik.http.middlewares.mastodon-web-hsts.headers.stsIncludeSubdomains: 'false'
+        traefik.http.middlewares.mastodon-web-hsts.headers.stsPreload: 'true'
+        traefik.http.middlewares.mastodon-web-hsts.headers.stsSeconds: 31536000
+        traefik.http.middlewares.mastodon-web-redirect.redirectscheme.scheme: 'https'
+        traefik.http.middlewares.mastodon-web-redirect.redirectscheme.port: 443
+        traefik.http.middlewares.mastodon-web-redirect.redirectscheme.permanent: 'true'
         traefik.http.routers.mastodon-web.rule: 'Host(`ma.fono.jp`)'
         traefik.http.routers.mastodon-web.tls: 'true'
         traefik.http.routers.mastodon-web.tls.certresolver: zerossl
         traefik.http.routers.mastodon-web.entrypoints: websecure
+        traefik.http.routers.mastodon-web.middlewares: 'mastodon-web-hsts'
         traefik.http.services.mastodon-web-service.loadbalancer.server.port: 3000
-        traefik.http.middlewares.mastodon-web-redirect-https.redirectscheme.scheme: https
-        traefik.http.middlewares.mastodon-web-redirect-https.redirectscheme.permanent: 'true'
-
+        traefik.http.routers.mastodon-web-http.rule: 'Host(`ma.fono.jp`)'
+        traefik.http.routers.mastodon-web-http.entrypoints: web
+        traefik.http.routers.mastodon-web-http.middlewares: mastodon-web-redirect
   before_migration:
     <<: *web
     command: bash -c "bundle exec rails db:migrate"
@@ -201,10 +213,11 @@ services:
       endpoint_mode: vip
       labels:
         traefik.enable: 'true'
-        treafik.docker.network: nginx-proxy-okaya
+        traefik.docker.network: nginx-proxy-okaya
         traefik.http.routers.mastodon-streaming.rule: 'Host(`ma.fono.jp`) && PathPrefix(`/api/v1/streaming`)'
         traefik.http.routers.mastodon-streaming.tls: 'true'
         traefik.http.routers.mastodon-streaming.tls.certresolver: zerossl
+        traefik.http.routers.mastodon-streaming.entrypoints: websecure
         traefik.http.services.mastodon-streaming-service.loadbalancer.server.port: 4000
 
   sidekiq:
