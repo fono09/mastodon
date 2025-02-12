@@ -24,8 +24,8 @@ services:
   db_backup:
     <<: *db
     command: sh -c "pg_basebackup -F t -D /backups/`date +%Y%m%d` -z -h db -U postgres -P && chown 1000:1000 -R /backups/*"
-    healthcheck:
-      test: ''
+    networks:
+      - internal_network
     volumes:
       - ./postgres_backups:/backups
       - /usr/share/zoneinfo/Asia/Tokyo:/etc/localtime
