@@ -88,7 +88,7 @@ services:
   web: &web
     # You can uncomment the following line if you want to not use the prebuilt image, for example if you have local code changes
     # build: .
-    image: ghcr.io/mastodon/mastodon:v4.3.4
+    image: ghcr.io/mastodon/mastodon:v4.3.8
     restart: always
     env_file: .env.production
     command: bundle exec puma -C config/puma.rb
@@ -191,7 +191,7 @@ services:
     # build:
     #   dockerfile: ./streaming/Dockerfile
     #   context: .
-    image: ghcr.io/mastodon/mastodon-streaming:v4.3.4
+    image: ghcr.io/mastodon/mastodon-streaming:v4.3.8
     restart: always
     env_file: .env.production
     command: node ./streaming/index.js
@@ -221,8 +221,9 @@ services:
         traefik.http.services.mastodon-streaming-service.loadbalancer.server.port: 4000
 
   sidekiq:
-    build: .
-    image: ghcr.io/mastodon/mastodon:v4.3.4
+    # You can uncomment the following line if you want to not use the prebuilt image, for example if you have local code changes
+    # build: .
+    image: ghcr.io/mastodon/mastodon:v4.3.8
     restart: always
     env_file: .env.production
     command: bundle exec sidekiq
