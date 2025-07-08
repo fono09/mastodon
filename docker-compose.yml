@@ -26,6 +26,8 @@ services:
     command: sh -c "pg_basebackup -F t -D /backups/`date +%Y%m%d` -z -h db -U postgres -P && chown 1000:1000 -R /backups/*"
     networks:
       - internal_network
+    healthcheck:
+      disable: true
     volumes:
       - ./postgres_backups:/backups
       - /usr/share/zoneinfo/Asia/Tokyo:/etc/localtime
@@ -136,7 +138,7 @@ services:
     <<: *web
     command: bash -c "bundle exec rails db:migrate"
     healthcheck:
-      test: ''
+      disable: true
     ports: []
     environment:
       - SKIP_POST_DEPLOYMENT_MIGRATIONS=true
@@ -151,7 +153,7 @@ services:
     <<: *web
     command: bash -c "bin/tootctl accounts prune && bin/tootctl media remove && bin/tootctl media remove-orphans && bin/tootctl preview_cards remove --days=21 && bin/tootctl media usage"
     healthcheck:
-      test: ''
+      disable: true
     ports: []
     deploy:
       placement:
@@ -164,7 +166,7 @@ services:
     <<: *web
     command: bash -c "bundle exec rails db:migrate"
     healthcheck:
-      test: ''
+      disable: true
     ports: []
     deploy:
       placement:
@@ -177,7 +179,7 @@ services:
     <<: *web
     command: bash -c "bin/tootctl search deploy --reset-chewy --concurrency=8"
     healthcheck:
-      test: ''
+      disable: true
     ports: []
     deploy:
       placement:
