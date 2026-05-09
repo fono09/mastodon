@@ -12,16 +12,6 @@ deploy:
 check-config:
 	docker compose -f docker-compose.yml config
 
-.PHONY: rolling-update
-rolling-update:
-	docker service update -d --force mastodon_web
-	docker service update -d --force mastodon_sidekiq
-	docker service update -d --force mastodon_streaming
-	docker service update -d --force mastodon_redis
-
-.PHONY: update
-update:
-	docker service update -d mastodon_web
-	docker service update -d mastodon_sidekiq
-	docker service update -d mastodon_streaming
-	docker service update -d mastodon_redis
+.PHONY: force-update
+force-update:
+	docker stack services -q $(stack) | xargs -n1 docker service update -d --force
