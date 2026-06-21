@@ -4,7 +4,7 @@
 x-sidekiq: &sidekiq
   # You can uncomment the following line if you want to not use the prebuilt image, for example if you have local code changes
   # build: .
-  image: ghcr.io/mastodon/mastodon:v4.5.9
+  image: ghcr.io/mastodon/mastodon:v4.5.10
   env_file: .env.production
   command: bundle exec sidekiq
   depends_on:
@@ -100,7 +100,8 @@ services:
   web: &web
     # You can uncomment the following line if you want to not use the prebuilt image, for example if you have local code changes
     # build: .
-    image: ghcr.io/mastodon/mastodon:v4.5.9
+    image: ghcr.io/mastodon/mastodon:v4.5.10
+    restart: always
     env_file: .env.production
     command: bundle exec puma -C config/puma.rb
     networks:
@@ -183,7 +184,8 @@ services:
     # build:
     #   dockerfile: ./streaming/Dockerfile
     #   context: .
-    image: ghcr.io/mastodon/mastodon-streaming:v4.5.9
+    image: ghcr.io/mastodon/mastodon-streaming:v4.5.10
+    restart: always
     env_file: .env.production
     command: node ./streaming/index.js
     networks:
@@ -202,7 +204,6 @@ services:
       mode: replicated
       replicas: 5
       endpoint_mode: vip
-
 
   sidekiq_default:
     <<: *sidekiq
