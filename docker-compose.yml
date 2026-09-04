@@ -25,7 +25,7 @@ services:
       test: ['CMD', 'pg_isready', '-U', 'postgres']
       start_period: 10m
     volumes:
-      - ./postgres14:/var/lib/postgresql/data
+      - /home/fono/ghq/github.com/tootsuite/mastodon/postgres14:/var/lib/postgresql/data
     environment:
       - 'POSTGRES_HOST_AUTH_METHOD=trust'
     deploy:
@@ -41,7 +41,7 @@ services:
     healthcheck:
       disable: true
     volumes:
-      - ./postgres_backups:/backups
+      - /home/fono/ghq/github.com/tootsuite/mastodon/postgres_backups:/backups
       - /usr/share/zoneinfo/Asia/Tokyo:/etc/localtime
     deploy:
       placement:
@@ -57,7 +57,7 @@ services:
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
     volumes:
-      - ./redis:/data
+      - /home/fono/ghq/github.com/tootsuite/mastodon/redis:/data
     deploy:
       placement:
         constraints: [node.hostname == okaya]
@@ -81,7 +81,7 @@ services:
     healthcheck:
        test: ["CMD-SHELL", "curl --silent --fail localhost:9200/_cluster/health || exit 1"]
     volumes:
-       - ./elasticsearch:/usr/share/elasticsearch/data
+       - /home/fono/ghq/github.com/tootsuite/mastodon/elasticsearch:/usr/share/elasticsearch/data
     ulimits:
       memlock:
         soft: -1

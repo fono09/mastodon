@@ -14,4 +14,4 @@ check-config:
 
 .PHONY: force-update
 force-update:
-	docker stack services -q $(stack) | xargs -n1 docker service update -d --force
+	docker stack services -q $(stack) | xargs -n1 docker service update -d --force --update-parallelism 1
